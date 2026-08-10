@@ -6,10 +6,12 @@ on:
       - main
 
 jobs:
-  test:
+  test-and-build:
+
     runs-on: ubuntu-latest
 
     steps:
+
       - name: Checkout Repository
         uses: actions/checkout@v4
 
@@ -25,3 +27,7 @@ jobs:
 
       - name: Run Unit Tests
         run: pytest
+
+      - name: Build Docker Image
+        run: |
+          docker build -t flask-app:${{ github.sha }} .

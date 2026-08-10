@@ -48,3 +48,17 @@ jobs:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Tag Docker Image
+        run: |
+          docker tag flask-app:${{ github.sha }} \
+          163265929593.dkr.ecr.ap-south-1.amazonaws.com/devops-cicd-project:${{ github.sha }}
+
+      - name: Push Docker Image
+        run: |
+          docker push \
+          163265929593.dkr.ecr.ap-south-1.amazonaws.com/devops-cicd-project:${{ github.sha }}

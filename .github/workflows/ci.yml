@@ -62,3 +62,34 @@ jobs:
         run: |
           docker push \
           163265929593.dkr.ecr.ap-south-1.amazonaws.com/devops-cicd-project:${{ github.sha }}
+
+      - name: Setup SSH Key
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.EC2_SSH_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -H ${{ secrets.EC2_HOST }} >> ~/.ssh/known_hosts
+
+      - name: Deploy to EC2
+        run: |
+          ssh ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} << EOF
+
+          aws ecr get-login-password --region ${{ secrets.AWS_REGION }} | \
+          docker login --username AWS --password-stdin \
+          163265929593.dkr.ecr.ap-south-1.amazonaws.com
+
+          docker pull 163265929593.dkr.ecr.ap-south-1.amazonaws.com/devops-cicd-project:${{ github.sha }}
+
+          docker stop flask-app || true
+          docker rm flask-app || true
+
+          docker run -d \
+            --name flask-app \
+            -p 80:5000 \
+            --restart unless-stopped \
+            163265929593.dkr.ecr.ap-south-1.amazonaws.com/devops-cicd-project:${{ github.sha }}
+
+          EOF
+
+
+  

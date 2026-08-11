@@ -1,0 +1,19 @@
+# Python
+venv/
+__pycache__/
+*.pyc
+
+# Terraform
+terraform/.terraform/
+terraform/terraform.tfstate
+terraform/terraform.tfstate.backup
+
+# Also ignore Terraform state anywhere
+*.tfstate
+*.tfstate.*
+
+# VS Code
+.vscode/
+
+# OS files
+.DS_Store

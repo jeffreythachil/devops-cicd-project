@@ -7,11 +7,12 @@ on:
 
 jobs:
   test-and-build:
-
     runs-on: ubuntu-latest
 
-    steps:
+    env:
+      IMAGE_NAME: devops-cicd-project
 
+    steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
@@ -31,7 +32,6 @@ jobs:
       - name: Build Docker Image
         run: |
           docker build -t flask-app:${{ github.sha }} .
-
 
       - name: Scan Docker Image with Trivy
         uses: aquasecurity/trivy-action@master
@@ -56,12 +56,12 @@ jobs:
       - name: Tag Docker Image
         run: |
           docker tag flask-app:${{ github.sha }} \
-          163265929593.dkr.ecr.ap-south-1.amazonaws.com/devops-cicd-project:${{ github.sha }}
+          ${{ steps.login-ecr.outputs.registry }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
 
       - name: Push Docker Image
         run: |
           docker push \
-          163265929593.dkr.ecr.ap-south-1.amazonaws.com/devops-cicd-project:${{ github.sha }}
+          ${{ steps.login-ecr.outputs.registry }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
 
       - name: Setup SSH Key
         run: |
@@ -72,24 +72,23 @@ jobs:
 
       - name: Deploy to EC2
         run: |
-          ssh ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} << EOF
+          ssh -o StrictHostKeyChecking=no \
+          ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} << EOF
 
           aws ecr get-login-password --region ${{ secrets.AWS_REGION }} | \
-          docker login --username AWS --password-stdin \
-          163265929593.dkr.ecr.ap-south-1.amazonaws.com
+          sudo docker login --username AWS --password-stdin \
+          ${{ steps.login-ecr.outputs.registry }}
 
-          docker pull 163265929593.dkr.ecr.ap-south-1.amazonaws.com/devops-cicd-project:${{ github.sha }}
+          sudo docker pull \
+          ${{ steps.login-ecr.outputs.registry }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
 
-          docker stop flask-app || true
-          docker rm flask-app || true
+          sudo docker stop flask-app || true
+          sudo docker rm flask-app || true
 
-          docker run -d \
+          sudo docker run -d \
             --name flask-app \
-            -p 80:5000 \
             --restart unless-stopped \
-            163265929593.dkr.ecr.ap-south-1.amazonaws.com/devops-cicd-project:${{ github.sha }}
+            -p 80:5000 \
+            ${{ steps.login-ecr.outputs.registry }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
 
           EOF
-
-
-  

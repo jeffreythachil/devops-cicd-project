@@ -28,3 +28,8 @@ variable "user_data" {
   description = "User data script"
   type        = string
 }
+
+variable "instance_profile_name" {
+  type = string
+}
+

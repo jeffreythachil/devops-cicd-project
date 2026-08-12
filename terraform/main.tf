@@ -6,6 +6,10 @@ module "vpc" {
   availability_zone = "ap-south-1a"
 }
 
+module "iam" {
+  source = "./modules/iam"
+}
+
 module "ec2" {
   source = "./modules/ec2"
 
@@ -16,6 +20,8 @@ module "ec2" {
 
   vpc_id    = module.vpc.vpc_id
   subnet_id = module.vpc.subnet_id
+
+  instance_profile_name = module.iam.instance_profile_name
 
   user_data = file("${path.module}/scripts/user_data.sh")
 }

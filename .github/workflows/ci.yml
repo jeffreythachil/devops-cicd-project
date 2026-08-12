@@ -4,19 +4,22 @@ on:
   push:
     branches:
       - main
+  workflow_dispatch:
 
 jobs:
-  test-and-build:
+  test-build-push:
+
     runs-on: ubuntu-latest
 
     env:
       IMAGE_NAME: devops-cicd-project
 
     steps:
+
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      - name: Set up Python
+      - name: Setup Python
         uses: actions/setup-python@v5
         with:
           python-version: "3.12"
@@ -58,37 +61,13 @@ jobs:
           docker tag flask-app:${{ github.sha }} \
           ${{ steps.login-ecr.outputs.registry }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
 
-      - name: Push Docker Image
+          docker tag flask-app:${{ github.sha }} \
+          ${{ steps.login-ecr.outputs.registry }}/${{ env.IMAGE_NAME }}:latest
+
+      - name: Push Docker Images
         run: |
           docker push \
           ${{ steps.login-ecr.outputs.registry }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
 
-      - name: Setup SSH Key
-        run: |
-          mkdir -p ~/.ssh
-          echo "${{ secrets.EC2_SSH_KEY }}" > ~/.ssh/id_rsa
-          chmod 600 ~/.ssh/id_rsa
-          ssh-keyscan -H ${{ secrets.EC2_HOST }} >> ~/.ssh/known_hosts
-
-      - name: Deploy to EC2
-        run: |
-          ssh -o StrictHostKeyChecking=no \
-          ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} << EOF
-
-          aws ecr get-login-password --region ${{ secrets.AWS_REGION }} | \
-          sudo docker login --username AWS --password-stdin \
-          ${{ steps.login-ecr.outputs.registry }}
-
-          sudo docker pull \
-          ${{ steps.login-ecr.outputs.registry }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
-
-          sudo docker stop flask-app || true
-          sudo docker rm flask-app || true
-
-          sudo docker run -d \
-            --name flask-app \
-            --restart unless-stopped \
-            -p 80:5000 \
-            ${{ steps.login-ecr.outputs.registry }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
-
-          EOF
+          docker push \
+          ${{ steps.login-ecr.outputs.registry }}/${{ env.IMAGE_NAME }}:latest

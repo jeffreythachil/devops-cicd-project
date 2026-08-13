@@ -32,14 +32,28 @@ unzip awscliv2.zip
 ./aws/install
 
 ##############################################
-# Login to Amazon ECR
+# Login to Amazon ECR (Retry until IAM credentials are available)
 ##############################################
 
 REGION="ap-south-1"
-
 ACCOUNT_ID="163265929593"
-
 REPOSITORY="devops-cicd-project"
+
+echo "Waiting for IAM credentials..."
+
+for i in {1..30}; do
+
+    if aws sts get-caller-identity >/dev/null 2>&1; then
+        echo "IAM credentials available."
+        break
+    fi
+
+    echo "IAM credentials not ready yet... Retrying in 10 seconds."
+    sleep 10
+
+done
+
+echo "Logging into Amazon ECR..."
 
 aws ecr get-login-password --region $REGION | \
 docker login \

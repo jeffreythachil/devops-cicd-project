@@ -4,43 +4,47 @@ resource "aws_vpc" "main" {
   enable_dns_hostnames = true
 
   tags = {
-    Name = "devops-vpc"
+    Name = "${var.project_name}-vpc"
   }
 }
 
-resource "aws_internet_gateway" "igw" {
+resource "aws_internet_gateway" "main" {
   vpc_id = aws_vpc.main.id
 
   tags = {
-    Name = "devops-igw"
+    Name = "${var.project_name}-igw"
   }
 }
 
-resource "aws_subnet" "public_subnet" {
+resource "aws_subnet" "app" {
+  count = length(var.availability_zones)
+
   vpc_id                  = aws_vpc.main.id
-  cidr_block              = var.subnet_cidr
-  availability_zone       = var.availability_zone
+  cidr_block              = var.subnet_cidrs[count.index]
+  availability_zone       = var.availability_zones[count.index]
   map_public_ip_on_launch = true
 
   tags = {
-    Name = "public-subnet"
+    Name = "${var.project_name}-subnet-${count.index + 1}"
   }
 }
 
-resource "aws_route_table" "public_rt" {
+resource "aws_route_table" "app" {
   vpc_id = aws_vpc.main.id
 
   route {
     cidr_block = "0.0.0.0/0"
-    gateway_id = aws_internet_gateway.igw.id
+    gateway_id = aws_internet_gateway.main.id
   }
 
   tags = {
-    Name = "public-route-table"
+    Name = "${var.project_name}-route-table"
   }
 }
 
-resource "aws_route_table_association" "public_assoc" {
-  subnet_id      = aws_subnet.public_subnet.id
-  route_table_id = aws_route_table.public_rt.id
+resource "aws_route_table_association" "app" {
+  count = length(aws_subnet.app)
+
+  subnet_id      = aws_subnet.app[count.index].id
+  route_table_id = aws_route_table.app.id
 }

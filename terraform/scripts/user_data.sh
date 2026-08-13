@@ -2,78 +2,56 @@
 
 set -e
 
-##############################################
-# Update Packages
-##############################################
+export DEBIAN_FRONTEND=noninteractive
 
-apt update -y
+echo "Starting EC2 bootstrap..."
 
-##############################################
+############################################
+# Update packages
+############################################
+
+apt-get update -y
+
+############################################
 # Install Docker
-##############################################
+############################################
 
-apt install -y docker.io
+apt-get install -y docker.io
 
 systemctl enable docker
 systemctl start docker
 
 usermod -aG docker ubuntu
 
-##############################################
+############################################
 # Install AWS CLI
-##############################################
+############################################
 
-apt install -y unzip curl
+apt-get install -y awscli
 
-curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+############################################
+# Install SSM Agent if not already present
+############################################
 
-unzip awscliv2.zip
+if ! systemctl list-unit-files | grep -q amazon-ssm-agent; then
 
-./aws/install
+    snap install amazon-ssm-agent --classic
 
-##############################################
-# Login to Amazon ECR (Retry until IAM credentials are available)
-##############################################
+fi
 
-REGION="ap-south-1"
-ACCOUNT_ID="163265929593"
-REPOSITORY="devops-cicd-project"
+systemctl enable snap.amazon-ssm-agent.amazon-ssm-agent.service || true
+systemctl start snap.amazon-ssm-agent.amazon-ssm-agent.service || true
 
-echo "Waiting for IAM credentials..."
+############################################
+# Create application directory
+############################################
 
-for i in {1..30}; do
+mkdir -p /opt/devops
 
-    if aws sts get-caller-identity >/dev/null 2>&1; then
-        echo "IAM credentials available."
-        break
-    fi
+chown ubuntu:ubuntu /opt/devops
 
-    echo "IAM credentials not ready yet... Retrying in 10 seconds."
-    sleep 10
+############################################
+# Finish
+############################################
 
-done
-
-echo "Logging into Amazon ECR..."
-
-aws ecr get-login-password --region $REGION | \
-docker login \
---username AWS \
---password-stdin \
-${ACCOUNT_ID}.dkr.ecr.${REGION}.amazonaws.com
-
-##############################################
-# Pull Latest Image
-##############################################
-
-docker pull \
-${ACCOUNT_ID}.dkr.ecr.${REGION}.amazonaws.com/${REPOSITORY}:latest
-
-##############################################
-# Run Container
-##############################################
-
-docker run -d \
---name flask-app \
---restart unless-stopped \
--p 80:5000 \
-${ACCOUNT_ID}.dkr.ecr.${REGION}.amazonaws.com/${REPOSITORY}:latest
+echo "EC2 bootstrap completed."

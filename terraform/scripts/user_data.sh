@@ -24,19 +24,17 @@ systemctl start docker
 usermod -aG docker ubuntu
 
 ############################################
-# Install AWS CLI
+# Install AWS CLI and curl
 ############################################
 
-apt-get install -y awscli
+apt-get install -y awscli curl
 
 ############################################
-# Install SSM Agent if not already present
+# Install SSM Agent
 ############################################
 
 if ! systemctl list-unit-files | grep -q amazon-ssm-agent; then
-
     snap install amazon-ssm-agent --classic
-
 fi
 
 systemctl enable snap.amazon-ssm-agent.amazon-ssm-agent.service || true
@@ -51,7 +49,7 @@ mkdir -p /opt/devops
 chown ubuntu:ubuntu /opt/devops
 
 ############################################
-# Finish
+# Bootstrap complete
 ############################################
 
-echo "EC2 bootstrap completed."
+echo "EC2 bootstrap completed successfully."

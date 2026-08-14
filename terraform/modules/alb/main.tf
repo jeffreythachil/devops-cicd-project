@@ -27,11 +27,21 @@ resource "aws_security_group" "ec2" {
   description = "Allow application traffic only from ALB"
   vpc_id      = var.vpc_id
 
+  # Allow application traffic from ALB
   ingress {
     from_port       = var.app_port
     to_port         = var.app_port
     protocol        = "tcp"
     security_groups = [aws_security_group.alb.id]
+  }
+
+  # Allow SSH only from my current public IP
+  ingress {
+    description = "SSH from my IP"
+    from_port   = 22
+    to_port     = 22
+    protocol    = "tcp"
+    cidr_blocks = ["106.222.236.151/32"]
   }
 
   egress {

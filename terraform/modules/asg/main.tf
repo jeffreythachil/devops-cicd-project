@@ -8,6 +8,9 @@ resource "aws_launch_template" "app" {
   image_id      = data.aws_ssm_parameter.ubuntu_ami.value
   instance_type = var.instance_type
 
+  # AWS key pair used for SSH access
+  key_name = "three-tier-key"
+
   iam_instance_profile {
     name = var.instance_profile_name
   }

@@ -1,5 +1,10 @@
-terraform/.terraform/
-terraform/terraform.tfstate
-terraform/terraform.tfstate.backup
+.terraform/
 *.tfstate
 *.tfstate.*
+crash.log
+crash.*.log
+terraform.tfvars
+.env
+__pycache__/
+.pytest_cache/
+*.pyc
